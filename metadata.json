@@ -1,0 +1,6 @@
+{
+  "name": "Pulzitive Agency",
+  "description": "Pulzitive is a high-end digital branding, performance marketing, creative content production agency and design academy.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

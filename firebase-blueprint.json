@@ -1,0 +1,457 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Authenticated Pulzitive portal user profile separating student and client accounts.",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["student", "client"]
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "organization": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "phone": {
+          "type": "string",
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["ownerUid", "role", "displayName", "email", "organization", "phone", "createdAt", "updatedAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Verified Pulzitive Agency administrator account record.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "role", "createdAt"]
+    },
+    "StudentEnrollment": {
+      "title": "StudentEnrollment",
+      "description": "Pulzitive Academy fellowship enrollment, module progress, capstone submission, and cohort certificate record.",
+      "type": "object",
+      "properties": {
+        "studentUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "studentName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "studentEmail": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "trackId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "trackTitle": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 160
+        },
+        "cohortFormat": {
+          "type": "string",
+          "enum": ["studio", "executive"]
+        },
+        "cohortLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "startDate": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "meetLink": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "completedModules": {
+          "type": "array"
+        },
+        "capstoneUrl": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "capstoneNotes": {
+          "type": "string",
+          "maxLength": 1500
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "submitted_capstone", "graduated"]
+        },
+        "certificateIssued": {
+          "type": "boolean"
+        },
+        "certificateId": {
+          "type": "string",
+          "maxLength": 80
+        },
+        "mentorNotes": {
+          "type": "string",
+          "maxLength": 1500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "studentUid",
+        "studentName",
+        "studentEmail",
+        "trackId",
+        "trackTitle",
+        "cohortFormat",
+        "cohortLabel",
+        "startDate",
+        "meetLink",
+        "completedModules",
+        "capstoneUrl",
+        "capstoneNotes",
+        "status",
+        "certificateIssued",
+        "certificateId",
+        "mentorNotes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ServiceBooking": {
+      "title": "ServiceBooking",
+      "description": "Client service booking for Pulzitive branding, digital marketing, media production, or product UI/UX.",
+      "type": "object",
+      "properties": {
+        "clientUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "clientName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "clientEmail": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "organization": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "serviceType": {
+          "type": "string",
+          "enum": [
+            "Brand Identity & Systems",
+            "Digital Marketing & Performance",
+            "Media Production & 3D Motion",
+            "Product UI/UX & Web Flagship",
+            "Full-Stack Brand + Launch Retainer"
+          ]
+        },
+        "budgetTier": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "timeline": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "projectBrief": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "referenceUrl": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "status": {
+          "type": "string",
+          "enum": ["submitted", "in_review", "in_production", "delivered"]
+        },
+        "agencyMilestone": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "agencyNotes": {
+          "type": "string",
+          "maxLength": 1500
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "clientUid",
+        "clientName",
+        "clientEmail",
+        "organization",
+        "serviceType",
+        "budgetTier",
+        "timeline",
+        "projectBrief",
+        "referenceUrl",
+        "status",
+        "agencyMilestone",
+        "agencyNotes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "FreeAuditRequest": {
+      "title": "FreeAuditRequest",
+      "description": "Complimentary Brand, Digital Marketing, and Media Production Audit requested by a client.",
+      "type": "object",
+      "properties": {
+        "clientUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "clientName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "clientEmail": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "brandName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "websiteUrl": {
+          "type": "string",
+          "maxLength": 300
+        },
+        "socialHandle": {
+          "type": "string",
+          "maxLength": 160
+        },
+        "focusArea": {
+          "type": "string",
+          "enum": [
+            "Brand Positioning & Identity",
+            "Website & Conversion UI/UX",
+            "Social Media & Performance Ads",
+            "Media Production & Visual Quality"
+          ]
+        },
+        "primaryChallenge": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 1500
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "in_review", "delivered"]
+        },
+        "diagnosticScore": {
+          "type": "number"
+        },
+        "auditFindings": {
+          "type": "string",
+          "maxLength": 3000
+        },
+        "recommendedNextStep": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "clientUid",
+        "clientName",
+        "clientEmail",
+        "brandName",
+        "websiteUrl",
+        "socialHandle",
+        "focusArea",
+        "primaryChallenge",
+        "status",
+        "diagnosticScore",
+        "auditFindings",
+        "recommendedNextStep",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ActivityLog": {
+      "title": "ActivityLog",
+      "description": "Immutable activity audit trail monitoring portal sign-ups, bookings, audits, cohort progress, and admin actions.",
+      "type": "object",
+      "properties": {
+        "actorUid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "actorName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "actorEmail": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 160
+        },
+        "actorRole": {
+          "type": "string",
+          "enum": ["student", "client", "admin"]
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "auth",
+            "cohort",
+            "certificate",
+            "service_booking",
+            "free_audit",
+            "discovery_call",
+            "admin_action"
+          ]
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        },
+        "details": {
+          "type": "string",
+          "maxLength": 600
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "actorUid",
+        "actorName",
+        "actorEmail",
+        "actorRole",
+        "category",
+        "action",
+        "details",
+        "createdAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Authenticated student and client user profiles indexed by Firebase UID."
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Authorized Pulzitive Admin UIDs."
+    },
+    "/studentEnrollments/{enrollmentId}": {
+      "schema": { "$ref": "#/entities/StudentEnrollment" },
+      "description": "Pulzitive Academy student enrollments, module completion, capstones, and certificates."
+    },
+    "/serviceBookings/{bookingId}": {
+      "schema": { "$ref": "#/entities/ServiceBooking" },
+      "description": "Client service bookings and agency production status records."
+    },
+    "/freeAudits/{auditId}": {
+      "schema": { "$ref": "#/entities/FreeAuditRequest" },
+      "description": "Complimentary Brand, Digital Marketing, and Media Production audit requests and diagnostics."
+    },
+    "/activityLogs/{logId}": {
+      "schema": { "$ref": "#/entities/ActivityLog" },
+      "description": "Website and portal activity monitor logs visible to the Admin dashboard and owning actor."
+    }
+  }
+}

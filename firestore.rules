@@ -1,0 +1,356 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Global Primitives
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isBootstrappedAdmin() {
+      return isVerifiedUser() && request.auth.token.email == 'salamabiodun01@gmail.com';
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() || (
+        isVerifiedUser() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // 3. Entity Validation Blueprints (Anti-Update-Gap)
+    function isValidUserProfile(data) {
+      return data.keys().hasAll([
+          'ownerUid', 'role', 'displayName', 'email', 'organization', 'phone', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerUid', 'role', 'displayName', 'email', 'organization', 'phone', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.ownerUid) &&
+        data.role in ['student', 'client'] &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120 &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 160 &&
+        data.organization is string && data.organization.size() <= 120 &&
+        data.phone is string && data.phone.size() <= 40 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidAdminRecord(data) {
+      return data.keys().hasAll(['uid', 'email', 'role', 'createdAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'role', 'createdAt']) &&
+        isValidId(data.uid) &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 160 &&
+        data.role == 'admin' &&
+        data.createdAt is timestamp;
+    }
+
+    function isValidStudentEnrollment(data) {
+      return data.keys().hasAll([
+          'studentUid', 'studentName', 'studentEmail', 'trackId', 'trackTitle',
+          'cohortFormat', 'cohortLabel', 'startDate', 'meetLink', 'completedModules',
+          'capstoneUrl', 'capstoneNotes', 'status', 'certificateIssued',
+          'certificateId', 'mentorNotes', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'studentUid', 'studentName', 'studentEmail', 'trackId', 'trackTitle',
+          'cohortFormat', 'cohortLabel', 'startDate', 'meetLink', 'completedModules',
+          'capstoneUrl', 'capstoneNotes', 'status', 'certificateIssued',
+          'certificateId', 'mentorNotes', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.studentUid) &&
+        data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 120 &&
+        data.studentEmail is string && data.studentEmail.size() >= 3 && data.studentEmail.size() <= 160 &&
+        isValidId(data.trackId) && data.trackId.size() <= 80 &&
+        data.trackTitle is string && data.trackTitle.size() >= 1 && data.trackTitle.size() <= 160 &&
+        data.cohortFormat in ['studio', 'executive'] &&
+        data.cohortLabel is string && data.cohortLabel.size() >= 1 && data.cohortLabel.size() <= 120 &&
+        data.startDate is string && data.startDate.size() >= 1 && data.startDate.size() <= 60 &&
+        data.meetLink is string && data.meetLink.size() <= 300 &&
+        data.completedModules is list && data.completedModules.size() <= 16 &&
+        (data.completedModules.size() == 0 || data.completedModules[0] is string) &&
+        data.capstoneUrl is string && data.capstoneUrl.size() <= 300 &&
+        data.capstoneNotes is string && data.capstoneNotes.size() <= 1500 &&
+        data.status in ['active', 'submitted_capstone', 'graduated'] &&
+        data.certificateIssued is bool &&
+        data.certificateId is string && data.certificateId.size() <= 80 &&
+        data.mentorNotes is string && data.mentorNotes.size() <= 1500 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidServiceBooking(data) {
+      return data.keys().hasAll([
+          'clientUid', 'clientName', 'clientEmail', 'organization', 'serviceType',
+          'budgetTier', 'timeline', 'projectBrief', 'referenceUrl', 'status',
+          'agencyMilestone', 'agencyNotes', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'clientUid', 'clientName', 'clientEmail', 'organization', 'serviceType',
+          'budgetTier', 'timeline', 'projectBrief', 'referenceUrl', 'status',
+          'agencyMilestone', 'agencyNotes', 'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.clientUid) &&
+        data.clientName is string && data.clientName.size() >= 1 && data.clientName.size() <= 120 &&
+        data.clientEmail is string && data.clientEmail.size() >= 3 && data.clientEmail.size() <= 160 &&
+        data.organization is string && data.organization.size() >= 1 && data.organization.size() <= 120 &&
+        data.serviceType in [
+          'Brand Identity & Systems',
+          'Digital Marketing & Performance',
+          'Media Production & 3D Motion',
+          'Product UI/UX & Web Flagship',
+          'Full-Stack Brand + Launch Retainer'
+        ] &&
+        data.budgetTier is string && data.budgetTier.size() >= 1 && data.budgetTier.size() <= 80 &&
+        data.timeline is string && data.timeline.size() >= 1 && data.timeline.size() <= 80 &&
+        data.projectBrief is string && data.projectBrief.size() >= 1 && data.projectBrief.size() <= 2000 &&
+        data.referenceUrl is string && data.referenceUrl.size() <= 300 &&
+        data.status in ['submitted', 'in_review', 'in_production', 'delivered'] &&
+        data.agencyMilestone is string && data.agencyMilestone.size() <= 300 &&
+        data.agencyNotes is string && data.agencyNotes.size() <= 1500 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidFreeAuditRequest(data) {
+      return data.keys().hasAll([
+          'clientUid', 'clientName', 'clientEmail', 'brandName', 'websiteUrl',
+          'socialHandle', 'focusArea', 'primaryChallenge', 'status',
+          'diagnosticScore', 'auditFindings', 'recommendedNextStep',
+          'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'clientUid', 'clientName', 'clientEmail', 'brandName', 'websiteUrl',
+          'socialHandle', 'focusArea', 'primaryChallenge', 'status',
+          'diagnosticScore', 'auditFindings', 'recommendedNextStep',
+          'createdAt', 'updatedAt'
+        ]) &&
+        isValidId(data.clientUid) &&
+        data.clientName is string && data.clientName.size() >= 1 && data.clientName.size() <= 120 &&
+        data.clientEmail is string && data.clientEmail.size() >= 3 && data.clientEmail.size() <= 160 &&
+        data.brandName is string && data.brandName.size() >= 1 && data.brandName.size() <= 120 &&
+        data.websiteUrl is string && data.websiteUrl.size() <= 300 &&
+        data.socialHandle is string && data.socialHandle.size() <= 160 &&
+        data.focusArea in [
+          'Brand Positioning & Identity',
+          'Website & Conversion UI/UX',
+          'Social Media & Performance Ads',
+          'Media Production & Visual Quality'
+        ] &&
+        data.primaryChallenge is string && data.primaryChallenge.size() >= 1 && data.primaryChallenge.size() <= 1500 &&
+        data.status in ['pending', 'in_review', 'delivered'] &&
+        data.diagnosticScore is number && data.diagnosticScore >= 0 && data.diagnosticScore <= 100 &&
+        data.auditFindings is string && data.auditFindings.size() <= 3000 &&
+        data.recommendedNextStep is string && data.recommendedNextStep.size() <= 600 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidActivityLog(data) {
+      return data.keys().hasAll([
+          'actorUid', 'actorName', 'actorEmail', 'actorRole', 'category', 'action', 'details', 'createdAt'
+        ]) &&
+        data.keys().hasOnly([
+          'actorUid', 'actorName', 'actorEmail', 'actorRole', 'category', 'action', 'details', 'createdAt'
+        ]) &&
+        isValidId(data.actorUid) &&
+        data.actorName is string && data.actorName.size() >= 1 && data.actorName.size() <= 120 &&
+        data.actorEmail is string && data.actorEmail.size() >= 3 && data.actorEmail.size() <= 160 &&
+        data.actorRole in ['student', 'client', 'admin'] &&
+        data.category in [
+          'auth', 'cohort', 'certificate', 'service_booking', 'free_audit', 'discovery_call', 'admin_action'
+        ] &&
+        data.action is string && data.action.size() >= 1 && data.action.size() <= 200 &&
+        data.details is string && data.details.size() <= 600 &&
+        data.createdAt is timestamp;
+    }
+
+    // 4. Collection Rules
+
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isBootstrappedAdmin() || (isSignedIn() && resource.data.ownerUid == request.auth.uid);
+      allow create: if isValidId(userId) &&
+        isVerifiedUser() &&
+        isOwner(userId) &&
+        isValidUserProfile(incoming()) &&
+        incoming().ownerUid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(userId) &&
+        isVerifiedUser() &&
+        isValidUserProfile(incoming()) &&
+        incoming().ownerUid == existing().ownerUid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (
+            isOwner(userId) &&
+            incoming().role == existing().role &&
+            incoming().email == existing().email &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'displayName', 'organization', 'phone', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    match /admins/{adminId} {
+      allow get: if isValidId(adminId) && (isOwner(adminId) || isAdmin());
+      allow list: if isBootstrappedAdmin();
+      allow create: if isValidId(adminId) &&
+        isVerifiedUser() &&
+        isValidAdminRecord(incoming()) &&
+        incoming().uid == adminId &&
+        incoming().createdAt == request.time &&
+        ((isBootstrappedAdmin() && incoming().uid == request.auth.uid) || isAdmin());
+      allow update, delete: if false;
+    }
+
+    match /studentEnrollments/{enrollmentId} {
+      allow get: if isValidId(enrollmentId) && (
+        (isSignedIn() && existing().studentUid == request.auth.uid) || isAdmin()
+      );
+      allow list: if isBootstrappedAdmin() || (
+        isSignedIn() && resource.data.studentUid == request.auth.uid
+      );
+      allow create: if isValidId(enrollmentId) &&
+        isVerifiedUser() &&
+        isValidStudentEnrollment(incoming()) &&
+        incoming().studentUid == request.auth.uid &&
+        incoming().status == 'active' &&
+        incoming().certificateIssued == false &&
+        incoming().certificateId == '' &&
+        incoming().mentorNotes == '' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      allow update: if isValidId(enrollmentId) &&
+        isVerifiedUser() &&
+        isValidStudentEnrollment(incoming()) &&
+        incoming().studentUid == existing().studentUid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (
+            existing().studentUid == request.auth.uid &&
+            existing().status != 'graduated' &&
+            incoming().status in ['active', 'submitted_capstone'] &&
+            incoming().certificateIssued == existing().certificateIssued &&
+            incoming().certificateId == existing().certificateId &&
+            incoming().mentorNotes == existing().mentorNotes &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'completedModules', 'capstoneUrl', 'capstoneNotes', 'status', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isValidId(enrollmentId) && isAdmin();
+    }
+
+    match /serviceBookings/{bookingId} {
+      allow get: if isValidId(bookingId) && (
+        (isSignedIn() && existing().clientUid == request.auth.uid) || isAdmin()
+      );
+      allow list: if isBootstrappedAdmin() || (
+        isSignedIn() && resource.data.clientUid == request.auth.uid
+      );
+      allow create: if isValidId(bookingId) &&
+        isVerifiedUser() &&
+        isValidServiceBooking(incoming()) &&
+        incoming().clientUid == request.auth.uid &&
+        incoming().status == 'submitted' &&
+        incoming().agencyMilestone == 'Brief Received — Studio Review' &&
+        incoming().agencyNotes == '' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      allow update: if isValidId(bookingId) &&
+        isVerifiedUser() &&
+        isValidServiceBooking(incoming()) &&
+        incoming().clientUid == existing().clientUid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (
+            existing().clientUid == request.auth.uid &&
+            existing().status != 'delivered' &&
+            incoming().status == existing().status &&
+            incoming().agencyMilestone == existing().agencyMilestone &&
+            incoming().agencyNotes == existing().agencyNotes &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'projectBrief', 'referenceUrl', 'timeline', 'budgetTier', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isValidId(bookingId) && isAdmin();
+    }
+
+    match /freeAudits/{auditId} {
+      allow get: if isValidId(auditId) && (
+        (isSignedIn() && existing().clientUid == request.auth.uid) || isAdmin()
+      );
+      allow list: if isBootstrappedAdmin() || (
+        isSignedIn() && resource.data.clientUid == request.auth.uid
+      );
+      allow create: if isValidId(auditId) &&
+        isVerifiedUser() &&
+        isValidFreeAuditRequest(incoming()) &&
+        incoming().clientUid == request.auth.uid &&
+        incoming().status == 'pending' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+      allow update: if isValidId(auditId) &&
+        isVerifiedUser() &&
+        isValidFreeAuditRequest(incoming()) &&
+        incoming().clientUid == existing().clientUid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        isAdmin();
+      allow delete: if isValidId(auditId) && isAdmin();
+    }
+
+    match /activityLogs/{logId} {
+      allow get: if isValidId(logId) && (
+        (isSignedIn() && existing().actorUid == request.auth.uid) || isAdmin()
+      );
+      allow list: if isBootstrappedAdmin() || (
+        isSignedIn() && resource.data.actorUid == request.auth.uid
+      );
+      allow create: if isValidId(logId) &&
+        isVerifiedUser() &&
+        isValidActivityLog(incoming()) &&
+        incoming().actorUid == request.auth.uid &&
+        incoming().createdAt == request.time && (
+          isAdmin() ||
+          incoming().actorRole in ['student', 'client']
+        );
+      allow update, delete: if false;
+    }
+  }
+}

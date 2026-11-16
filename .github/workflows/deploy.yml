@@ -1,0 +1,131 @@
+name: Deploy Pulzitive Agency to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build & Package Static Site
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.pages_mode.outputs.mode }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: |
+          if [ -f "bun.lock" ] || [ -f "bun.lockb" ]; then
+            bun install --frozen-lockfile || bun install
+          elif [ -f "package-lock.json" ]; then
+            npm ci
+          else
+            npm install --legacy-peer-deps --no-audit --no-fund
+          fi
+
+      - name: Run TypeScript check
+        run: bun run lint
+
+      - name: Check GitHub Pages configuration
+        id: pages_mode
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          STATUS_AND_BODY=$(curl -sS -w "\n%{http_code}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${GITHUB_TOKEN}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/pages" || printf '\n000')
+          HTTP_CODE=$(printf '%s\n' "$STATUS_AND_BODY" | tail -n1)
+          BODY=$(printf '%s\n' "$STATUS_AND_BODY" | sed '$d')
+
+          MODE=$(HTTP_CODE="$HTTP_CODE" BODY="$BODY" node -e '
+            let mode = "branch";
+            if (process.env.HTTP_CODE === "200") {
+              try {
+                const data = JSON.parse(process.env.BODY || "{}");
+                if (data.build_type === "workflow") mode = "workflow";
+              } catch {}
+            }
+            process.stdout.write(mode);
+          ')
+
+          echo "GitHub Pages API status: ${HTTP_CODE}, deployment mode: ${MODE}"
+          echo "mode=${MODE}" >> "$GITHUB_OUTPUT"
+
+      - name: Configure GitHub Pages (Actions mode)
+        id: pages
+        if: steps.pages_mode.outputs.mode == 'workflow'
+        uses: actions/configure-pages@v5
+
+      - name: Build Vite production bundle
+        env:
+          PAGES_MODE: ${{ steps.pages_mode.outputs.mode }}
+          RAW_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+        run: |
+          if [ "$PAGES_MODE" = "workflow" ]; then
+            NORMALIZED_BASE="${RAW_BASE_PATH%/}/"
+          else
+            NORMALIZED_BASE="./"
+          fi
+          echo "Resolved Vite base path: ${NORMALIZED_BASE}"
+          VITE_BASE_PATH="${NORMALIZED_BASE}" bun run build
+
+      - name: Prepare SPA 404 fallback, .nojekyll & verify static assets
+        run: |
+          test -f dist/index.html
+          test -d dist/drive-assets
+          test -f dist/drive-assets/Salami-Abiodun-Resume.pdf
+          test -f dist/assets/aistudio/Nigerian_Creative_Team_Collaboration_0b0b9b5d.png
+          cp dist/index.html dist/404.html
+          touch dist/.nojekyll
+
+      - name: Upload GitHub Pages artifact (Actions mode)
+        if: steps.pages_mode.outputs.mode == 'workflow'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+      - name: Publish to gh-pages branch (Branch fallback mode)
+        if: steps.pages_mode.outputs.mode == 'branch'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          force_orphan: true
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    if: needs.build.outputs.mode == 'workflow'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
